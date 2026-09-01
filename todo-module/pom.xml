@@ -11,6 +11,7 @@
     <packaging>jar</packaging>
 
     <properties>
+        <start-class>com.todo.TodoApplication</start-class>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
