@@ -11,4 +11,5 @@ RUN mvn -B -pl todo-module -am clean package -DskipTests
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=builder /app/todo-module/target/*.jar /app/app.jar
+EXPOSE 8079
 ENTRYPOINT ["java","-jar","app.jar"]

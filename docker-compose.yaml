@@ -1,0 +1,55 @@
+name: java-micro-todo
+services:
+  mysql:
+    container_name: database
+    image: mysql:8.4
+    ports:
+      - 3306:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+    restart: always
+    networks:
+      - app-todo
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-ppassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+  todo-service:
+    container_name: todo-service
+    build: 
+      context: .
+      dockerfile: todo-module/Dockerfile
+    restart: always
+    depends_on: 
+      mysql:
+        condition: service_healthy
+    networks:
+      - app-todo
+    ports:
+      - 8079:8079
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306
+      - SPRING_DATASOURCE_USER=root
+      - SPRING_DATASOURCE_PASSWORD=password
+  user-service:
+    container_name: user-service
+    build: 
+      context: .
+      dockerfile: user-module/Dockerfile
+    restart: always
+    depends_on: 
+      mysql:
+        condition: service_healthy
+    networks:
+      - app-todo
+    ports:
+      - 8078:8078
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306
+      - SPRING_DATASOURCE_USER=root
+      - SPRING_DATASOURCE_PASSWORD=password
+
+networks:
+  app-todo:
