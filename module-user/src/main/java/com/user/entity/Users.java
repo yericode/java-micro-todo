@@ -2,11 +2,16 @@ package com.user.entity;
 
 import com.user.dto.CreateUserRequest;
 import com.user.dto.UpdateUserRequest;
+
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
 
+import java.sql.Types;
 import java.util.UUID;
 
 @Entity
@@ -14,10 +19,16 @@ import java.util.UUID;
 public class Users {
     @Id
     @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
+    @JdbcTypeCode(Types.BINARY)
     private UUID id;
 
+    @Column(name = "name", nullable = false)
     private String name;
+
+    @Column(name = "email", nullable = false)
     private String email;
+
+    @Column(name = "phone", nullable = false)
     private String phone;
 
     public Users() {

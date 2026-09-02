@@ -63,7 +63,7 @@ configs:
       use DB_USER;
       
       create table if not exists users(
-        id varchar(36) primary key,
+        id BINARY(16) primary key,
         name varchar(200) not null,
         email varchar(200) not null,
         phone varchar(10) not null
@@ -73,10 +73,10 @@ configs:
       use DB_TODO;
       
       create table if not exists todo(
-        id varchar(36) primary key,
-        user_id varchar(36) not null,
+        id BINARY(16) primary key,
+        user_id BINARY(16) not null,
         content varchar(200) not null,
-        created_at timestamp default current_timestamp not null
+        created_at timestamp default current_timestamp
       );
 
 networks:
