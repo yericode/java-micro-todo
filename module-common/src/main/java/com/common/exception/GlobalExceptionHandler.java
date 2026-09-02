@@ -1,5 +1,6 @@
 package com.common.exception;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,15 +8,17 @@ import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 @RestControllerAdvice
-@Order(Ordered.LOWEST_PRECEDENCE)
+@Order(-1) // 要比 spring.mvc.problemdetails.enabled 建立的 @RestControllerAdvice (order = 1) 還晚執行
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
@@ -29,9 +32,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             log.warn("[Request Rejected] traceId={}, type={}, message={}", traceId, ex.getClass().getSimpleName(), ex.getMessage());
         }
 
-        if (body instanceof ProblemDetail problemDetail && traceId != null) {
+        ResponseEntity<Object> response = super.handleExceptionInternal(ex, body, headers, statusCode, request);
+        if (response != null && response.getBody() instanceof ProblemDetail problemDetail && traceId != null) {
             problemDetail.setProperty("traceId", traceId);
         }
-        return super.handleExceptionInternal(ex, body, headers, statusCode, request);
+        return response;
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ProblemDetail> handleUnexpected(Exception ex, HttpServletRequest request) {
+        String traceId = MDC.get("traceId");
+        log.error("[Unexpected Exception] traceId={}, uri={}", traceId, request.getRequestURI(), ex);
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "未預期錯誤，請稍後重試");
+        problemDetail.setProperty("errorCode", "0001");
+        problemDetail.setProperty("traceId", traceId);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problemDetail);
     }
 }
