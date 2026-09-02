@@ -1,10 +1,10 @@
 name: java-micro-todo
 services:
   mysql:
-    container_name: database
+    container_name: mysql
     image: mysql:8.4
     ports:
-      - 3306:3306
+      - "3306:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=password
     restart: always
@@ -16,11 +16,15 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    configs:
+      - source: init_sql
+        target: /docker-entrypoint-initdb.d/init.sql
+
   todo-service:
     container_name: todo-service
     build: 
       context: .
-      dockerfile: todo-module/Dockerfile
+      dockerfile: module-todo/Dockerfile
     restart: always
     depends_on: 
       mysql:
@@ -28,16 +32,17 @@ services:
     networks:
       - app-todo
     ports:
-      - 8079:8079
+      - "8079:8079"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/DB_TODO
       - SPRING_DATASOURCE_USER=root
       - SPRING_DATASOURCE_PASSWORD=password
+
   user-service:
     container_name: user-service
     build: 
       context: .
-      dockerfile: user-module/Dockerfile
+      dockerfile: module-user/Dockerfile
     restart: always
     depends_on: 
       mysql:
@@ -45,11 +50,34 @@ services:
     networks:
       - app-todo
     ports:
-      - 8078:8078
+      - "8078:8078"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/DB_USER
       - SPRING_DATASOURCE_USER=root
       - SPRING_DATASOURCE_PASSWORD=password
+
+configs:
+  init_sql:
+    content: |
+      create database if not exists DB_USER;
+      use DB_USER;
+      
+      create table if not exists users(
+        id varchar(36) primary key,
+        name varchar(200) not null,
+        email varchar(200) not null,
+        phone varchar(10) not null
+      );
+      
+      create database if not exists DB_TODO;
+      use DB_TODO;
+      
+      create table if not exists todo(
+        id varchar(36) primary key,
+        user_id varchar(36) not null,
+        content varchar(200) not null,
+        created_at timestamp default current_timestamp not null
+      );
 
 networks:
   app-todo:
