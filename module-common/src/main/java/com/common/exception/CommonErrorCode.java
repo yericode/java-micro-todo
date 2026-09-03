@@ -1,18 +1,17 @@
-package com.user.exception;
+package com.common.exception;
 
-import com.common.exception.ErrorCode;
 import org.springframework.http.HttpStatus;
 
-public enum UserErrorCode implements ErrorCode {
-    INVALID_INPUT("2001", "必要參數有誤", HttpStatus.BAD_REQUEST),
-    INVALID_EMAIL_OR_PASSWORD("2002", "帳號或密碼錯誤", HttpStatus.BAD_REQUEST),
-    DUPLICATE_EMAIL("2003", "已有重複內容", HttpStatus.BAD_REQUEST);
+public enum CommonErrorCode implements ErrorCode{
+    UNEXCEPTED_ERROR("0001", "未預期錯誤，請稍後重試", HttpStatus.INTERNAL_SERVER_ERROR),
+    NOT_FOUND("0002", "資料內容為空", HttpStatus.NOT_FOUND),
+    EMPTY_RESPONSE("0003", "服務回應內容為空", HttpStatus.BAD_GATEWAY);
 
     private String code;
     private String message;
     private HttpStatus httpStatus;
 
-    UserErrorCode(String code, String message, HttpStatus httpStatus) {
+    CommonErrorCode(String code, String message, HttpStatus httpStatus) {
         this.code = code;
         this.message = message;
         this.httpStatus = httpStatus;

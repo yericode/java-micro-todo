@@ -3,6 +3,9 @@ package com.common.exception;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.ErrorResponseException;
 
+/**
+ * 自訂統一業務邏輯 Exception 父類
+ */
 public class BusinessException extends ErrorResponseException {
 
     private final ErrorCode errorCode;

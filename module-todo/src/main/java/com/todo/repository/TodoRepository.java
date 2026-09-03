@@ -10,5 +10,5 @@ import com.todo.entity.Todo;
 
 @Repository
 public interface TodoRepository extends JpaRepository<Todo, UUID> {
-    List<Todo> findByUserId(UUID userId);
+    List<Todo> findAllByUserId(UUID userId);
 }

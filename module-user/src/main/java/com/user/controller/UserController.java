@@ -1,5 +1,7 @@
 package com.user.controller;
 
+import com.common.exception.CommonErrorCode;
+import com.common.exception.CommonException;
 import com.user.dto.CreateUserRequest;
 import com.user.dto.GetUserTodosResponse;
 import com.user.dto.TodoDto;
@@ -8,6 +10,7 @@ import com.user.entity.Users;
 import com.user.exception.UserErrorCode;
 import com.user.exception.UserException;
 import com.user.repository.UserRepository;
+import jakarta.transaction.SystemException;
 import jakarta.validation.Valid;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
@@ -65,33 +68,40 @@ public class UserController {
 
     @GetMapping(value = "/users/{id}", version = "v1")
     public ResponseEntity<Users> getUserById(@PathVariable UUID id) {
-        Users user = userRepository.findById(id).orElseThrow(() -> new UserException(UserErrorCode.NOT_EXISTS));
+        Users user = userRepository.findById(id).orElseThrow(() -> new CommonException(CommonErrorCode.NOT_FOUND, "查無使用者"));
         return ResponseEntity.ok(user);
     }
 
-    @GetMapping(value = "/users/{id}", version = "v1")
-    public ResponseEntity<GetUserTodosResponse> getUserTodos(@PathVariable UUID id) throws IOException, InterruptedException {
-        Users user = userRepository.findById(id).orElseThrow(() -> new UserException(UserErrorCode.NOT_EXISTS));
+    @GetMapping(value = "/users/{id}/todos", version = "v1")
+    public ResponseEntity<GetUserTodosResponse> getUserTodos(@PathVariable UUID id) {
+        Users user = userRepository.findById(id).orElseThrow(() -> new CommonException(CommonErrorCode.NOT_FOUND, "查無使用者"));
 
-        String body = "";
-        if (StringUtils.hasText(todoServiceUri)) {
-            String url = todoServiceUri + "/api/v1/todos";
-            HttpClient http = HttpClient.newHttpClient();
-            HttpRequest req = HttpRequest.newBuilder().uri(URI.create(url)).build();
-            HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString());
-            body = res.body();
-            log.info("TodoService Response: {}, {}", res.statusCode(), body);
-        } else {
+        if (!StringUtils.hasText(todoServiceUri)) {
             throw new UserException(UserErrorCode.INVALID_INPUT);
         }
 
-        List<TodoDto> todos = new ArrayList<>();
-        if (StringUtils.hasText(body)) {
-            todos = objectMapper.readValue(body, new TypeReference<List<TodoDto>>() {});
-        } else {
-            throw new UserException(UserErrorCode.NOT_EXISTS);
+        String body = "";
+        try (HttpClient http = HttpClient.newHttpClient()) {
+            String url = todoServiceUri + "/api/v1/todos?user=" + user.getId();
+            HttpRequest req = HttpRequest.newBuilder().uri(URI.create(url)).build();
+
+            if (log.isDebugEnabled()) {
+                log.debug("TodoService Request: {}", req.toString());
+            }
+            HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString());
+            body = res.body();
+            log.info("TodoService Response: {}, {}", res.statusCode(), body);
+        } catch (IOException e) {
+            throw new CommonException(CommonErrorCode.UNEXCEPTED_ERROR);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new CommonException(CommonErrorCode.UNEXCEPTED_ERROR);
         }
 
+        if (!StringUtils.hasText(body)) {
+            throw new CommonException(CommonErrorCode.EMPTY_RESPONSE);
+        }
+        List<TodoDto> todos = objectMapper.readValue(body, new TypeReference<>() {});
         return ResponseEntity.ok(new GetUserTodosResponse(user, todos));
     }
 
@@ -105,7 +115,7 @@ public class UserController {
     @PutMapping(value = "/users/{id}", version = "v1")
     @Transactional
     public ResponseEntity<Void> updateUserById(@PathVariable UUID id, @RequestBody @Valid UpdateUserRequest request) {
-        Users user = userRepository.findById(id).orElseThrow(() -> new UserException(UserErrorCode.NOT_EXISTS));
+        Users user = userRepository.findById(id).orElseThrow(() -> new CommonException(CommonErrorCode.NOT_FOUND, "查無使用者"));
         user.updateUser(request);
         return ResponseEntity.ok(null);
     }

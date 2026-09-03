@@ -8,3 +8,11 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+logging:
+  level:
+    root: debug
+services:
+  user-service:
+    uri: http://localhost:8078
+  todo-service:
+    uri: http://localhost:8079

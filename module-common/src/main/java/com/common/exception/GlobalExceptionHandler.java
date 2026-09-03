@@ -17,8 +17,14 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 import jakarta.servlet.http.HttpServletRequest;
 
+/**
+ * 全域異常處理，涵蓋範圍為 Spring MVC dispatch 路徑，以下路徑不包含：<br/>
+ * - Filter (Spring Security 等)<br/>
+ * - @Async / @Schedule / @EventListener<br/>
+ * - MQ ErrorHandler
+ */
 @RestControllerAdvice
-@Order(-1) // 要比 spring.mvc.problemdetails.enabled 建立的 @RestControllerAdvice (order = 1) 還晚執行
+@Order(-1) // 要比 spring.mvc.problemdetails.enabled 建立的 @RestControllerAdvice (Order = 0) 還早執行
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
@@ -43,8 +49,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<ProblemDetail> handleUnexpected(Exception ex, HttpServletRequest request) {
         String traceId = MDC.get("traceId");
         log.error("[Unexpected Exception] traceId={}, uri={}", traceId, request.getRequestURI(), ex);
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "未預期錯誤，請稍後重試");
-        problemDetail.setProperty("errorCode", "0001");
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, CommonErrorCode.UNEXCEPTED_ERROR.getMessage());
+        problemDetail.setProperty("errorCode", CommonErrorCode.UNEXCEPTED_ERROR.getCode());
         problemDetail.setProperty("traceId", traceId);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problemDetail);
     }
