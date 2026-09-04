@@ -44,6 +44,9 @@ public class TodoController {
 
     @GetMapping(value = "/todos", version = "v1")
     public ResponseEntity<List<Todo>> getAllTodosByUserId(@RequestParam(name = "user", required = false) UUID userId) {
+        if (log.isDebugEnabled()) {
+            log.debug("UserId: {}", userId);
+        }
         List<Todo> todos = new ArrayList<>();
         if (userId != null) {
             todos = todoRepository.findAllByUserId(userId);

@@ -41,6 +41,7 @@ kind: ConfigMap
 metadata:
   name: todo-config
 data:
+  LOGGING_LEVEL_ROOT: info
   SPRING_DATASOURCE_USERNAME: root
   DATASOURCE_DB_USER: jdbc:mysql://mysql:3306/DB_USER
   DATASOURCE_DB_TODO: jdbc:mysql://mysql:3306/DB_TODO
