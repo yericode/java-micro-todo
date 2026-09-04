@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-service
+spec:
+  replicas: 1
+  minReadySeconds: 30
+  progressDeadlineSeconds: 300
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: todo-service
+      role: backend
+  template:
+    metadata:
+      labels:
+        app: todo-service
+        role: backend
+    spec:
+      terminationGracePeriodSeconds: 40
+      containers:
+        - name: todo-service
+          image: todo-service:0.0.1
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: todo-config
+            - secretRef:
+                name: todo-secret
+          env:
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-config
+                  key: DATASOURCE_DB_TODO
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              memory: 1Gi
+          ports:
+            - containerPort: 8079
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 10
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8079
+            failureThreshold: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8079
+            failureThreshold: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8079
+            failureThreshold: 3
+            periodSeconds: 5
+            timeoutSeconds: 5

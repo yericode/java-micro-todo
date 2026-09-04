@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  replicas: 1
+  minReadySeconds: 10
+  progressDeadlineSeconds: 120
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: mysql
+      role: database
+  template:
+    metadata:
+      labels:
+        app: mysql
+        role: database
+    spec:
+      terminationGracePeriodSeconds: 40
+      volumes:
+        - name: mysql-config-volume
+          configMap:
+            name: mysql-config
+            items:
+              - key: init_sql
+                path: init.sql
+      containers:
+        - name: mysql
+          image: mysql:8.4
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_ROOT_PASSWORD
+          volumeMounts:
+            - name: mysql-config-volume
+              mountPath: /docker-entrypoint-initdb.d/init.sql
+              subPath: init.sql
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+          startupProbe:
+            exec:
+              command:
+                - "sh"
+                - "-c"
+                - "mysqladmin -h 127.0.0.1 -u root -p$MYSQL_ROOT_PASSWORD ping"
+            failureThreshold: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - "sh"
+                - "-c"
+                - "mysqladmin -h 127.0.0.1 -u root -p$MYSQL_ROOT_PASSWORD ping"
+            failureThreshold: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          ports:
+            - containerPort: 3306

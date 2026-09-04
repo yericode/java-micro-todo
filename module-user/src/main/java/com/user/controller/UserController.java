@@ -1,19 +1,13 @@
 package com.user.controller;
 
-import com.common.exception.CommonErrorCode;
-import com.common.exception.CommonException;
-import com.user.dto.CreateUserRequest;
-import com.user.dto.GetUserTodosResponse;
-import com.user.dto.TodoDto;
-import com.user.dto.UpdateUserRequest;
-import com.user.entity.Users;
-import com.user.exception.UserErrorCode;
-import com.user.exception.UserException;
-import com.user.repository.UserRepository;
-import jakarta.transaction.SystemException;
-import jakarta.validation.Valid;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,14 +25,20 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import com.common.exception.CommonErrorCode;
+import com.common.exception.CommonException;
+import com.user.dto.CreateUserRequest;
+import com.user.dto.GetUserTodosResponse;
+import com.user.dto.TodoDto;
+import com.user.dto.UpdateUserRequest;
+import com.user.entity.Users;
+import com.user.exception.UserErrorCode;
+import com.user.exception.UserException;
+import com.user.repository.UserRepository;
+
+import jakarta.validation.Valid;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/api/{version}")

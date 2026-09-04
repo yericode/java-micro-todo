@@ -1,16 +1,42 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: todo-svc
+  name: user-service
 spec:
   type: NodePort
   selector:
-    app: todo
-    role: backend-service
+    app: user-service
+    role: backend
   ports:
-  - port: 8078
-    targetPort: 8078
-    nodePort: 38078
-  - port: 8079
-    targetPort: 8079
-    nodePort: 38079
+    - port: 8078
+      targetPort: 8078
+      nodePort: 30078
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-service
+spec:
+  type: NodePort
+  selector:
+    app: todo-service
+    role: backend
+  ports:
+    - protocol: TCP
+      port: 8079
+      targetPort: 8079
+      nodePort: 30079
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  type: ClusterIP
+  selector:
+    app: mysql
+    role: database
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306

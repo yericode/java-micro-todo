@@ -1,39 +1,48 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: mysql-config
+data:
+  init_sql: |
+    create database if not exists DB_USER;
+    use DB_USER;
+
+    create table if not exists users(
+      id BINARY(16) primary key,
+      name varchar(200) not null,
+      email varchar(200) not null,
+      phone varchar(10) not null
+    );
+
+    insert into users(id, name, email, phone)
+    values
+      (UUID_TO_BIN('01a064c8-1b1c-7e28-b522-79c0469f10cf'), 'Eric', 'eric@demo.com', '0910123456'),
+      (UUID_TO_BIN('01a064c8-61e8-7698-9322-bc24719f6417'), 'Lily', 'lily@demo.com', '0984768293'),
+      (UUID_TO_BIN('01a064c8-a1d5-7656-8c98-df63a0b810c7'), 'Tom', 'tom@demo.com', '0965783902');
+
+    create database if not exists DB_TODO;
+    use DB_TODO;
+
+    create table if not exists todo(
+      id BINARY(16) primary key,
+      user_id BINARY(16) not null,
+      content varchar(200) not null,
+      created_at timestamp default current_timestamp
+    );
+
+    insert into todo(id, user_id, content)
+    values
+      (UUID_TO_BIN('01a064cf-494e-778c-8648-3efc0ef88769'), UUID_TO_BIN('01a064c8-1b1c-7e28-b522-79c0469f10cf'), 'this is a first test'),
+      (UUID_TO_BIN('01a064cf-5ca9-75b8-93b9-a6560c33e7d1'), UUID_TO_BIN('01a064c8-1b1c-7e28-b522-79c0469f10cf'), 'this is a second test'),
+      (UUID_TO_BIN('01a064cf-7239-7fcb-8bcf-a05505af9fec'), UUID_TO_BIN('01a064c8-1b1c-7e28-b522-79c0469f10cf'), 'this is a third test');
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: todo-config
-data: 
+data:
+  SPRING_DATASOURCE_USERNAME: root
+  DATASOURCE_DB_USER: jdbc:mysql://mysql:3306/DB_USER
+  DATASOURCE_DB_TODO: jdbc:mysql://mysql:3306/DB_TODO
   SERVICES_USER-SERVICE_URI: http://user-service:8078
   SERVICES_TODO-SERVICE_URI: http://todo-service:8079
-  init_sql: |
-      create database if not exists DB_USER;
-      use DB_USER;
-      
-      create table if not exists users(
-        id BINARY(16) primary key,
-        name varchar(200) not null,
-        email varchar(200) not null,
-        phone varchar(10) not null
-      );
-      
-      insert into users(id, name, email, phone)
-      values
-        (UUID_TO_BIN('01a064c8-1b1c-7e28-b522-79c0469f10cf'), 'Eric', 'eric@demo.com', '0910123456'),
-        (UUID_TO_BIN('01a064c8-61e8-7698-9322-bc24719f6417'), 'Lily', 'lily@demo.com', '0984768293'),
-        (UUID_TO_BIN('01a064c8-a1d5-7656-8c98-df63a0b810c7'), 'Tom', 'tom@demo.com', '0965783902');
-      
-      create database if not exists DB_TODO;
-      use DB_TODO;
-      
-      create table if not exists todo(
-        id BINARY(16) primary key,
-        user_id BINARY(16) not null,
-        content varchar(200) not null,
-        created_at timestamp default current_timestamp
-      );
-      
-      insert into todo(id, user_id, content)
-      values
-        (UUID_TO_BIN('01a064cf-494e-778c-8648-3efc0ef88769'), UUID_TO_BIN('01a064c8-1b1c-7e28-b522-79c0469f10cf'), 'this is a first test'),
-        (UUID_TO_BIN('01a064cf-5ca9-75b8-93b9-a6560c33e7d1'), UUID_TO_BIN('01a064c8-1b1c-7e28-b522-79c0469f10cf'), 'this is a second test'),
-        (UUID_TO_BIN('01a064cf-7239-7fcb-8bcf-a05505af9fec'), UUID_TO_BIN('01a064c8-1b1c-7e28-b522-79c0469f10cf'), 'this is a third test');
