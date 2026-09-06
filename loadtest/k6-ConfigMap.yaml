@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k6-scripts
+data:
+  load.js: |
+    import http from 'k6/http';
+    import { check } from 'k6';
+
+    export const options = {
+      summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
+      stages: [
+        { duration: '20s', target: 15 },
+        { duration: '80s', target: 15 },
+        { duration: '20s', target: 0 },
+      ],
+      thresholds: {
+        http_req_duration: ['p(95)<500', 'p(99)<1000'],
+        http_req_failed: ['rate<0.01'],
+      },
+    };
+
+    export default function () {
+      const res = http.get('http://user-service:8078/api/v1/users/01a064c8-1b1c-7e28-b522-79c0469f10cf/todos');
+      check(res, { 'status 200': (r) => r.status === 200 });
+    }  

@@ -47,3 +47,10 @@ data:
   DATASOURCE_DB_TODO: jdbc:mysql://mysql:3306/DB_TODO
   SERVICES_USER-SERVICE_URI: http://user-service:8078
   SERVICES_TODO-SERVICE_URI: http://todo-service:8079
+  JDK_JAVA_OPTIONS: >-
+    -XX:+UseG1GC
+    -XX:MaxRAMPercentage=70
+    -XX:+HeapDumpOnOutOfMemoryError
+    -XX:HeapDumpPath=/var/log/app
+    -XX:+CrashOnOutOfMemoryError
+    -XX:StartFlightRecording=filename=/var/log/app/app.jfr,settings=profile,dumponexit=true

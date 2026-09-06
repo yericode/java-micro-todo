@@ -3,7 +3,6 @@ kind: Deployment
 metadata:
   name: todo-service
 spec:
-  replicas: 1
   minReadySeconds: 30
   progressDeadlineSeconds: 300
   revisionHistoryLimit: 10
@@ -18,6 +17,10 @@ spec:
         role: backend
     spec:
       terminationGracePeriodSeconds: 40
+      volumes:
+        - name: app-log
+          emptyDir:
+            sizeLimit: 2Gi
       containers:
         - name: todo-service
           image: todo-service:0.0.1
@@ -33,12 +36,17 @@ spec:
                 configMapKeyRef:
                   name: todo-config
                   key: DATASOURCE_DB_TODO
+          volumeMounts:
+            - name: app-log
+              mountPath: /var/log/app
           resources:
             requests:
               cpu: 250m
               memory: 1Gi
+              ephemeral-storage: 2Gi
             limits:
               memory: 1Gi
+              ephemeral-storage: 3Gi
           ports:
             - containerPort: 8079
           lifecycle:
