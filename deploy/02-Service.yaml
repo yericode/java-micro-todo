@@ -8,7 +8,8 @@ spec:
     app: user-service
     role: backend
   ports:
-    - port: 8078
+    - name: http
+      port: 8078
       targetPort: 8078
       nodePort: 30078
 ---
@@ -22,7 +23,7 @@ spec:
     app: todo-service
     role: backend
   ports:
-    - protocol: TCP
+    - name: http
       port: 8079
       targetPort: 8079
       nodePort: 30079
