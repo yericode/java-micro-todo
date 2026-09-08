@@ -1,10 +1,7 @@
 package com.user.controller;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -13,8 +10,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StreamUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestClient;
 
 import com.common.exception.CommonErrorCode;
 import com.common.exception.CommonException;
@@ -74,33 +75,34 @@ public class UserController {
 
     @GetMapping(value = "/users/{id}/todos", version = "v1")
     public ResponseEntity<GetUserTodosResponse> getUserTodos(@PathVariable UUID id) {
-        Users user = userRepository.findById(id).orElseThrow(() -> new CommonException(CommonErrorCode.NOT_FOUND, "查無使用者"));
+        Users user = userRepository.findById(id)
+                .orElseThrow(() -> new CommonException(CommonErrorCode.NOT_FOUND, "查無使用者"));
 
         if (!StringUtils.hasText(todoServiceUri)) {
             throw new UserException(UserErrorCode.INVALID_INPUT);
         }
 
-        String body = "";
-        try (HttpClient http = HttpClient.newHttpClient()) {
-            String url = todoServiceUri + "/api/v1/todos?user=" + user.getId();
-            HttpRequest req = HttpRequest.newBuilder().uri(URI.create(url)).build();
+        RestClient restClient = RestClient.builder().baseUrl(todoServiceUri).build();
 
-            if (log.isDebugEnabled()) {
-                log.debug("TodoService Request: {}", req.toString());
-            }
-            HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString());
-            body = res.body();
-            log.info("TodoService Response: {}, {}", res.statusCode(), body);
-        } catch (IOException e) {
-            throw new CommonException(CommonErrorCode.UNEXCEPTED_ERROR);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new CommonException(CommonErrorCode.UNEXCEPTED_ERROR);
-        }
+        String body = restClient.get()
+                .uri(uriBuilder -> {
+                    URI uri = uriBuilder.path("/api/v1/todos").queryParam("user", user.getId()).build();
+                    log.info("Call Todo Service URI: {}", uri.toString());
+                    return uri;
+                })
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, (req, res) -> {
+                    String bodyStr = StreamUtils.copyToString(res.getBody(), StandardCharsets.UTF_8);
+                    throw new CommonException(CommonErrorCode.UNEXCEPTED_ERROR, bodyStr);
+                })
+                .body(String.class);
 
         if (!StringUtils.hasText(body)) {
             throw new CommonException(CommonErrorCode.EMPTY_RESPONSE);
         }
+
+        log.info("Call Todo Service Response: {}", body);
         List<TodoDto> todos = objectMapper.readValue(body, new TypeReference<>() {});
         return ResponseEntity.ok(new GetUserTodosResponse(user, todos));
     }

@@ -23,7 +23,7 @@ spec:
             sizeLimit: 2Gi
       containers:
         - name: user-service
-          image: user-service:0.0.1
+          image: user-service:0.0.3
           imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef:

@@ -1,4 +1,5 @@
 **/target
+**/extracted
 .git
 .idea
 .vscode

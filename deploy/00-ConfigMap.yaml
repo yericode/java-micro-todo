@@ -1,6 +1,26 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: todo-config
+data:
+  LOGGING_LEVEL_ROOT: info
+  LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+  SPRING_DATASOURCE_USERNAME: root
+  DATASOURCE_DB_USER: jdbc:mysql://mysql:3306/DB_USER
+  DATASOURCE_DB_TODO: jdbc:mysql://mysql:3306/DB_TODO
+  SERVICES_USER-SERVICE_URI: http://user-service:8078
+  SERVICES_TODO-SERVICE_URI: http://todo-service:8079
+  JDK_JAVA_OPTIONS: >-
+    -XX:+UseG1GC
+    -XX:MaxRAMPercentage=70
+    -XX:+HeapDumpOnOutOfMemoryError
+    -XX:HeapDumpPath=/var/log/app
+    -XX:+CrashOnOutOfMemoryError
+    -XX:StartFlightRecording=filename=/var/log/app/app.jfr,settings=profile,dumponexit=true
+---    
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: mysql-config
 data:
   init_sql: |
@@ -35,22 +55,3 @@ data:
       (UUID_TO_BIN('01a064cf-494e-778c-8648-3efc0ef88769'), UUID_TO_BIN('01a064c8-1b1c-7e28-b522-79c0469f10cf'), 'this is a first test'),
       (UUID_TO_BIN('01a064cf-5ca9-75b8-93b9-a6560c33e7d1'), UUID_TO_BIN('01a064c8-1b1c-7e28-b522-79c0469f10cf'), 'this is a second test'),
       (UUID_TO_BIN('01a064cf-7239-7fcb-8bcf-a05505af9fec'), UUID_TO_BIN('01a064c8-1b1c-7e28-b522-79c0469f10cf'), 'this is a third test');
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: todo-config
-data:
-  LOGGING_LEVEL_ROOT: info
-  SPRING_DATASOURCE_USERNAME: root
-  DATASOURCE_DB_USER: jdbc:mysql://mysql:3306/DB_USER
-  DATASOURCE_DB_TODO: jdbc:mysql://mysql:3306/DB_TODO
-  SERVICES_USER-SERVICE_URI: http://user-service:8078
-  SERVICES_TODO-SERVICE_URI: http://todo-service:8079
-  JDK_JAVA_OPTIONS: >-
-    -XX:+UseG1GC
-    -XX:MaxRAMPercentage=70
-    -XX:+HeapDumpOnOutOfMemoryError
-    -XX:HeapDumpPath=/var/log/app
-    -XX:+CrashOnOutOfMemoryError
-    -XX:StartFlightRecording=filename=/var/log/app/app.jfr,settings=profile,dumponexit=true

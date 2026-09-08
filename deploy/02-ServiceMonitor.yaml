@@ -8,7 +8,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      name: user-service
+      app: user-service
   endpoints:
     - port: http
       path: /actuator/prometheus
@@ -24,7 +24,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      name: todo-service
+      app: todo-service
   endpoints:
     - port: http
       path: /actuator/prometheus
