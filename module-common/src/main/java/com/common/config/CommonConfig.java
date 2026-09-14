@@ -2,12 +2,15 @@ package com.common.config;
 
 import com.common.exception.GlobalExceptionHandler;
 import com.common.filter.TraceIdFilter;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.webmvc.autoconfigure.WebMvcAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.Ordered;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.servlet.config.annotation.ApiVersionConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -28,5 +31,10 @@ public class CommonConfig implements WebMvcConfigurer {
         bean.setOrder(Ordered.HIGHEST_PRECEDENCE + 10);
         bean.addUrlPatterns("/*");
         return bean;
+    }
+
+    @Bean
+    public RestClient restClient(RestClient.Builder builder, @Value("${services.todo-service.uri}") String url) {
+        return builder.baseUrl(url).build();
     }
 }

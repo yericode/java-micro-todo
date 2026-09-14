@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: todo-service
+  http:
+    client:
+      factory: http-components        # 使用 Apache HttpClient5
+      connect-timeout: 2s
+      read-timeout: 5s    
   lifecycle:
     timeout-per-shutdown-phase: 30s
   datasource:
@@ -39,6 +44,17 @@ management:
   observations:
     key-values:
       application: ${spring.application.name}
+  
+  metrics.distribution:
+    percentiles-histogram:
+      http.server.requests: true
+    slo:
+      http.server.requests: 100ms,300ms,1s
+    minimum-expected-value:
+      http.server.requests: 10ms
+    maximum-expected-value:
+      http.server.requests: 5s
+  
 
 services:
   user-service:

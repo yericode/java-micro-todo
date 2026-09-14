@@ -1,0 +1,27 @@
+prometheus:
+  prometheusSpec:
+    retention: 12h
+    serviceMonitorSelectorNilUsesHelmValues: false   # ← 抓所有 ServiceMonitor
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        memory: 1Gi
+
+alertmanager:
+  enabled: false            # 練習用不到，省資源
+
+grafana:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 512Mi
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      url: http://loki.monitoring:3100     # ← 自動接上，不用手動加
+      access: proxy
+      isDefault: false        # ← 明確寫出來

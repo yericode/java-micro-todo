@@ -53,6 +53,9 @@ public class UserController {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired 
+    private RestClient restClient;
+
     @Value("${services.todo-service.uri}")
     private String todoServiceUri;
 
@@ -81,8 +84,6 @@ public class UserController {
         if (!StringUtils.hasText(todoServiceUri)) {
             throw new UserException(UserErrorCode.INVALID_INPUT);
         }
-
-        RestClient restClient = RestClient.builder().baseUrl(todoServiceUri).build();
 
         String body = restClient.get()
                 .uri(uriBuilder -> {

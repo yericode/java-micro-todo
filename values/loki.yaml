@@ -1,0 +1,31 @@
+# ⚠️ 關掉自帶的 Grafana 和 Prometheus，避免跟 kube-prometheus-stack 衝突
+grafana:
+  enabled: false
+  sidecar:
+    datasource:
+      enabled: false      # ← 關掉自動產生 datasource ConfigMap
+prometheus:
+  enabled: false
+
+loki:
+  enabled: true
+  persistence:
+    enabled: false          # kind 練習環境不用 PVC
+  config:
+    limits_config:
+      retention_period: 24h
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+promtail:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
