@@ -15,6 +15,6 @@ export const options = {
 };
 
 export default function () {
-    const res = http.get('http://localhost:8078/api/v1/users/01a064c8-1b1c-7e28-b522-79c0469f10cf/todos');
+    const res = http.get('http://172.23.150.81:8078/api/v1/users/01a064c8-1b1c-7e28-b522-79c0469f10cf/todos');
     check(res, { 'status 200': (r) => r.status === 200 });
 }

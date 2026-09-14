@@ -49,7 +49,7 @@ management:
     percentiles-histogram:
       http.server.requests: true
     slo:
-      http.server.requests: 100ms,300ms,1s
+      http.server.requests: 25ms,50ms,100ms,150ms,1s
     minimum-expected-value:
       http.server.requests: 10ms
     maximum-expected-value:
