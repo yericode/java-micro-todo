@@ -1,0 +1,39 @@
+groups:
+  - name: user-service-slo
+    rules:
+      - record: uri:http_server_requests:rate5m
+        expr: sum by (uri) (rate(http_server_requests_seconds_count{job="user-service", uri!~"/actuator.*"}[5m]))
+      - record: uri:http_server_requests_latency_bad:ratio_rate5m
+        expr: |
+          1 - (
+            sum by (uri)(rate(http_server_requests_seconds_bucket{job='user-service', uri!~"/actuator.*", le='0.1'}[5m]))
+            /
+            sum by (uri)(rate(http_server_requests_seconds_bucket{job='user-service', uri!~"/actuator.*", le='+Inf'}[5m]))
+          )
+      - record: uri:http_server_requests_latency_bad:ratio_rate1h
+        expr: |
+          1 - (
+            sum by (uri)(rate(http_server_requests_seconds_bucket{job='user-service', uri!~"/actuator.*", le='0.1'}[1h]))
+            /
+            sum by (uri)(rate(http_server_requests_seconds_bucket{job='user-service', uri!~"/actuator.*", le='+Inf'}[1h]))
+          )
+      - alert: UserServiceDown
+        expr: absent(up{job="user-service"}) or up{job="user-service"} == 0
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: "user-service 已停止回應"
+      - alert: TodoServiceDown
+        expr: absent(up{job="todo-service"}) or up{job="todo-service"} == 0
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: "todo-service 已停止回應"
+      - alert: UserServiceLatencyFastBurn
+        # slo 99%，錯誤預算 1%，壞事件比例 = 錯誤預算 * burn rate
+        expr: |
+          uri:http_server_requests_latency_bad:ratio_rate5m > 14.4 * 0.01
+          and 
+          uri:http_server_requests_latency_bad:ratio_rate1h > 14.4 * 0.01

@@ -1,10 +1,10 @@
 global:
   scrape_interval: 15s     # 抓取指標 (Metrics) 的時間間隔
-  evaluation_interval: 15s # 評估告警規則的時間間隔
+  evaluation_interval: 15s # 評估告警規則的時間間隔，預設 1m 
 
 # 告警規則檔案配置 (目前若無可維持空白)
 rule_files:
-  # - "first_rules.yml"
+  - /etc/prometheus/rules/*.yml
 
 # 抓取目標配置
 scrape_configs:
@@ -17,3 +17,8 @@ scrape_configs:
     metrics_path: "/actuator/prometheus"
     static_configs:
       - targets: ["host.docker.internal:8078"]
+
+  - job_name: "todo-service"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["host.docker.internal:8079"]

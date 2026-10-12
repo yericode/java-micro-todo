@@ -4,6 +4,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -105,7 +106,12 @@ public class UserController {
 
         log.info("Call Todo Service Response: {}", body);
         List<TodoDto> todos = objectMapper.readValue(body, new TypeReference<>() {});
-        return ResponseEntity.ok(new GetUserTodosResponse(user, todos));
+
+        if (isError()) {
+            return ResponseEntity.status(503).body(null);
+        } else {
+            return ResponseEntity.ok(new GetUserTodosResponse(user, todos));
+        }
     }
 
     @PostMapping(value = "/users", version = "v1")
@@ -128,5 +134,11 @@ public class UserController {
     public ResponseEntity<Void> deleteUserById(@PathVariable UUID id) {
         userRepository.deleteById(id);
         return ResponseEntity.ok(null);
+    }
+
+    private boolean isError() {
+        Random random = new Random();
+        int num = random.nextInt(100) + 1;
+        return num % 10 == 0;
     }
 }
