@@ -1,0 +1,213 @@
+rule_files:
+  - ../rules/user-service-slo.yml
+
+evaluation_interval: 15s
+
+tests:
+  # --> TodoServiceDown test
+  - interval: 15s
+    input_series:
+      # 'a x n' 是展開記法：值 a 重複出現 n+1 次
+      # 前 2 分鐘 up=1（0s～120s 共 9 筆），之後 up=0（135s 起共 9 筆）
+      # 支援遞增記法 a+bxn，例如 '0+10x4' 會展開成 0 10 20 30 40
+      - series: 'up{job="todo-service", instance="host.docker.internal:8079"}'
+        values: '1x8 0x8'
+
+    alert_rule_test:
+      # 135s 開始 up=0，3m 時才持續 45 秒，還沒滿足 for: 1m
+      - eval_time: 3m
+        alertname: TodoServiceDown
+        exp_alerts: []
+
+      # 3m30s 時已持續 75 秒，應該要 firing
+      - eval_time: 3m30s
+        alertname: TodoServiceDown
+        # 只比對 firing 的告警，pending 不算
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              job: todo-service
+              instance: host.docker.internal:8079
+            exp_annotations:
+              summary: "todo-service 已停止回應"
+
+  # --> UserServiceLatencyFastBurn test
+  - interval: 15s
+    input_series:
+      # 75 分鐘 = 4500 秒 = 300 個 15 秒窗口，每個窗口 +10 事件，+2 壞事件，壞事件比例每窗口 20% > 門檻 14.4%
+      - series: 'http_server_requests_seconds_bucket{job="user-service", uri="/api/{version}/users/{id}/todos", le="+Inf"}'
+        values: '0+10x300'
+      - series: 'http_server_requests_seconds_bucket{job="user-service", uri="/api/{version}/users/{id}/todos", le="0.1"}'
+        values: '0+8x300'
+
+    alert_rule_test:
+      # 測試情境為考量 uri:http_server_requests_latency_bad:ratio_rate1h 壞事件指標灌滿 1 小時窗口，並且在超過 1 小時候才計算並測試
+      - eval_time: 1h10m
+        alertname: UserServiceLatencyFastBurn
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              uri: /api/{version}/users/{id}/todos
+            exp_annotations:
+              summary: "user-service Burn rate fast 告警"
+
+      # 測試情境為不滿一小時窗口，uri:http_server_requests_latency_bad:ratio_rate1h 等長指標退化為短指標，但計算 burn rate 仍超過門檻一樣會有告警
+      - eval_time: 1m
+        alertname: UserServiceLatencyFastBurn
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              uri: /api/{version}/users/{id}/todos
+            exp_annotations:
+              summary: "user-service Burn rate fast 告警"               
+
+               
+
+  - interval: 15s
+    input_series:
+      # 測試情境為錯誤比例不到門檻，驗證不會發告警
+      - series: 'http_server_requests_seconds_bucket{job="user-service", uri="/api/{version}/users/{id}/todos", le="+Inf"}'
+        values: '0+10x300'
+      - series: 'http_server_requests_seconds_bucket{job="user-service", uri="/api/{version}/users/{id}/todos", le="0.1"}'
+        values: '0+9x300'
+
+    alert_rule_test:
+      - eval_time: 70m
+        alertname: UserServiceLatencyFastBurn
+        exp_alerts: []
+
+
+
+  # --> UserServiceLatencySlowBurn test
+  - interval: 15s
+    input_series:
+      # 6小時 = 21600 秒 = 1440 個 15 秒窗口，每個窗口 +100 事件，+8 壞事件，壞事件比例每窗口 8% > 門檻 6%
+      - series: 'http_server_requests_seconds_bucket{job="user-service", uri="/api/{version}/users/{id}/todos", le="+Inf"}'
+        values: '0+100x1440'
+      - series: 'http_server_requests_seconds_bucket{job="user-service", uri="/api/{version}/users/{id}/todos", le="0.1"}'
+        values: '0+92x1440'
+
+    alert_rule_test:
+      # 測試情境為考量 uri:http_server_requests_latency_bad:ratio_rate6h 壞事件指標灌滿 6 小時窗口，並且在超過 6 小時候才計算並測試
+      - eval_time: 6h
+        alertname: UserServiceLatencySlowBurn
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              uri: /api/{version}/users/{id}/todos
+            exp_annotations:
+              summary: "user-service Burn rate slow 告警"
+
+      # 測試情境為不滿 6 小時窗口，uri:http_server_requests_latency_bad:ratio_rate6h 等長指標退化為短指標，但計算 burn rate 仍超過門檻一樣會有告警
+      - eval_time: 1m
+        alertname: UserServiceLatencySlowBurn
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              uri: /api/{version}/users/{id}/todos
+            exp_annotations:
+              summary: "user-service Burn rate slow 告警"                          
+
+  - interval: 15s
+    input_series:
+      # 測試情境為錯誤比例不到門檻，驗證不會發告警
+      - series: 'http_server_requests_seconds_bucket{job="user-service", uri="/api/{version}/users/{id}/todos", le="+Inf"}'
+        values: '0+100x1440'
+      - series: 'http_server_requests_seconds_bucket{job="user-service", uri="/api/{version}/users/{id}/todos", le="0.1"}'
+        values: '0+96x1440'
+
+    alert_rule_test:
+      - eval_time: 70m
+        alertname: UserServiceLatencySlowBurn
+        exp_alerts: []
+
+
+
+
+  # --> UserServiceLatencyFastBurn & UserServiceLatencySlowBurn 搭配
+  - interval: 15s
+    # 測試情境錯誤比例介於 slow - fast 之間，應該只會看到 slow 告警但不會有 fast 告警
+    input_series:
+      - series: 'http_server_requests_seconds_bucket{job="user-service", uri="/api/{version}/users/{id}/todos", le="+Inf"}'
+        values: '0+100x1440'
+      - series: 'http_server_requests_seconds_bucket{job="user-service", uri="/api/{version}/users/{id}/todos", le="0.1"}'
+        values: '0+87x1440'
+    alert_rule_test:
+      - eval_time: 6h
+        alertname: UserServiceLatencySlowBurn
+        exp_alerts: 
+          - exp_labels:
+              severity: page
+              uri: /api/{version}/users/{id}/todos
+            exp_annotations:
+              summary: "user-service Burn rate slow 告警"   
+      - eval_time: 70m
+        alertname: UserServiceLatencyFastBurn
+        exp_alerts: []
+
+  - interval: 15s
+    # 測試情境兩個都不該有
+    input_series:
+      - series: 'http_server_requests_seconds_bucket{job="user-service", uri="/api/{version}/users/{id}/todos", le="+Inf"}'
+        values: '0+100x1440'
+      - series: 'http_server_requests_seconds_bucket{job="user-service", uri="/api/{version}/users/{id}/todos", le="0.1"}'
+        values: '0+99x1440'
+    alert_rule_test:
+      - eval_time: 6h
+        alertname: UserServiceLatencySlowBurn
+        exp_alerts: [] 
+      - eval_time: 70m
+        alertname: UserServiceLatencyFastBurn
+        exp_alerts: []
+
+
+
+  # --> UserServiceLatencyFastBurn ramp 測試
+  - interval: 15s
+    input_series:
+      # 全部請求：每 15 秒 +10，共 2 小時（0～120m，481 筆）
+      - series: 'http_server_requests_seconds_bucket{job="user-service", uri="/api/{version}/users/{id}/todos", le="+Inf"}'
+        values: '0+10x480'
+      # 0～60m：全部達標（+10）
+      # 60m15s～90m：事故，只有一半達標（+5），壞事件比例 50%
+      # 90m15s～120m：恢復，全部達標（+10）
+      - series: 'http_server_requests_seconds_bucket{job="user-service", uri="/api/{version}/users/{id}/todos", le="0.1"}'
+        values: '0+10x240 2405+5x119 3010+10x119'
+        
+    alert_rule_test:
+      # 5m 短窗口觸發但 1h 長窗口沒有，所以沒有告警
+      - eval_time: 75m
+        alertname: UserServiceLatencyFastBurn
+        exp_alerts: []
+
+      # 5m 短窗口觸發且 1h 長窗口有，所以告警
+      - eval_time: 80m
+        alertname: UserServiceLatencyFastBurn
+        exp_alerts: 
+          - exp_labels:
+              severity: page
+              uri: /api/{version}/users/{id}/todos
+            exp_annotations:
+              summary: "user-service Burn rate fast 告警"
+
+      # 告警是否維持看兩邊是否都存在，所以 5m 1h 兩個告經都再就不取消
+      - eval_time: 92m
+        alertname: UserServiceLatencyFastBurn
+        exp_alerts: 
+          - exp_labels:
+              severity: page
+              uri: /api/{version}/users/{id}/todos
+            exp_annotations:
+              summary: "user-service Burn rate fast 告警"
+
+      # 5m 短窗口恢復但 1h 還沒，此時告警已經取消了
+      - eval_time: 95m
+        alertname: UserServiceLatencyFastBurn
+        exp_alerts: []
+
+    # promql_expr_test:
+    #   - expr: uri:http_server_requests_latency_bad:ratio_rate1h
+    #     eval_time: 1h10m
+    #     exp_samples:
+    #       - labels: 'uri:http_server_requests_latency_bad:ratio_rate1h{uri="/api/{version}/users/{id}/todos"}'
+    #         value: 0.2

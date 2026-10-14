@@ -3,6 +3,7 @@ groups:
     rules:
       - record: uri:http_server_requests:rate5m
         expr: sum by (uri) (rate(http_server_requests_seconds_count{job="user-service", uri!~"/actuator.*"}[5m]))
+
       - record: uri:http_server_requests_latency_bad:ratio_rate5m
         expr: |
           1 - (
@@ -10,6 +11,7 @@ groups:
             /
             sum by (uri)(rate(http_server_requests_seconds_bucket{job='user-service', uri!~"/actuator.*", le='+Inf'}[5m]))
           )
+
       - record: uri:http_server_requests_latency_bad:ratio_rate1h
         expr: |
           1 - (
@@ -17,6 +19,23 @@ groups:
             /
             sum by (uri)(rate(http_server_requests_seconds_bucket{job='user-service', uri!~"/actuator.*", le='+Inf'}[1h]))
           )
+
+      - record: uri:http_server_requests_latency_bad:ratio_rate30m
+        expr: |
+          1 - (
+            sum by (uri)(rate(http_server_requests_seconds_bucket{job='user-service', uri!~"/actuator.*", le='0.1'}[30m]))
+            /
+            sum by (uri)(rate(http_server_requests_seconds_bucket{job='user-service', uri!~"/actuator.*", le='+Inf'}[30m]))
+          )
+      
+      - record: uri:http_server_requests_latency_bad:ratio_rate6h
+        expr: |
+          1 - (
+            sum by (uri)(rate(http_server_requests_seconds_bucket{job='user-service', uri!~"/actuator.*", le='0.1'}[6h]))
+            /
+            sum by (uri)(rate(http_server_requests_seconds_bucket{job='user-service', uri!~"/actuator.*", le='+Inf'}[6h]))
+          )
+
       - alert: UserServiceDown
         expr: absent(up{job="user-service"}) or up{job="user-service"} == 0
         for: 1m
@@ -24,6 +43,7 @@ groups:
           severity: page
         annotations:
           summary: "user-service 已停止回應"
+
       - alert: TodoServiceDown
         expr: absent(up{job="todo-service"}) or up{job="todo-service"} == 0
         for: 1m
@@ -31,9 +51,27 @@ groups:
           severity: page
         annotations:
           summary: "todo-service 已停止回應"
+
       - alert: UserServiceLatencyFastBurn
-        # slo 99%，錯誤預算 1%，壞事件比例 = 錯誤預算 * burn rate
+        # 1 小時燒掉 2% 預算屬於需要人立即處理的等級
+        # slo 99%，錯誤預算 1%，壞事件比例 = burn rate * 錯誤預算
         expr: |
           uri:http_server_requests_latency_bad:ratio_rate5m > 14.4 * 0.01
           and 
           uri:http_server_requests_latency_bad:ratio_rate1h > 14.4 * 0.01
+        labels:
+          severity: page
+        annotations:
+          summary: "user-service Burn rate fast 告警"
+
+      - alert: UserServiceLatencySlowBurn
+        # 6 小時燒掉 5% 預算屬於需要人立即處理的等級
+        # slo 99%，錯誤預算 1%，壞事件比例 = burn rate * 錯誤預算
+        expr: |
+          uri:http_server_requests_latency_bad:ratio_rate30m > 6 * 0.01
+          and 
+          uri:http_server_requests_latency_bad:ratio_rate6h > 6 * 0.01
+        labels:
+          severity: page
+        annotations:
+          summary: "user-service Burn rate slow 告警"          
